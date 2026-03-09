@@ -26,7 +26,8 @@ set "EXP_ROOT=%~dp0Mobile_Export"
 set "MAX_BK=10"
 
 if not exist "%ADB%" (echo [错误] 找不到 adb\adb.exe && pause && exit)
-
+set "LOG=%~dp0sts2_sync.log"
+echo [%date% %time%] 程序启动 > "%LOG%"
 
 :MENU
 cls
@@ -36,7 +37,6 @@ echo ==========================================
 echo  [状态] AppData:!PC_SAVE!
 echo  [状态] Remote :!REMOTE_SAVE!
 echo ------------------------------------------
-echo ------------------------------------------
 echo  1. 同步到手机 (PC -^> Mobile)
 echo  2. 同步到电脑 (Mobile -^> PC)
 echo  3. 恢复电脑存档
@@ -45,7 +45,8 @@ echo  5. 导出手机存档
 echo  6. 连接教程
 echo  7. 退出
 echo ------------------------------------------
-call :CHECK_ADB
+echo  [设备] !DEVICE_STR!
+echo ------------------------------------------
 set /p opt=请选择: 
 
 for /f %%i in ('powershell -noprofile -command "Get-Date -Format 'yyyyMMdd_HHmmss'"') do set "ts=%%i"
@@ -56,24 +57,29 @@ if "%opt%"=="4" goto RESTORE_MB
 if "%opt%"=="5" goto EXPORT_MB
 if "%opt%"=="6" goto TUTORIAL
 if "%opt%"=="7" exit
+echo [DEBUG] 无效输入 opt=^|%opt%^| 返回菜单
+pause
 goto MENU
 
 :CONFIRM
 echo.
 set /p confirm=确认执行操作吗? (y/n): 
-if /i "!confirm!"=="y" goto :EOF
+if /i "!confirm!"=="y" exit /b
 echo 操作取消。 & pause & goto MENU
 
 :: ------------------ [连接检测子程序] ------------------
 :CHECK_ADB
 echo.
 echo [连接检测] 正在检查 ADB 设备...
-"%ADB%" devices
+set "ADB_OK="
+set "DEVICE_STR=未连接"
 for /f "skip=1 tokens=1,2" %%a in ('"%ADB%" devices') do (
     if "%%b"=="device" (
         set "ADB_OK=1"
         for /f "delims=" %%m in ('"%ADB%" shell getprop ro.product.manufacturer') do set "MFR=%%m"
-        for /f "delims=" %%m in ('"%ADB%" shell getprop ro.product.model') do set "MDL=%%m"
+        for /f "delims=" %%m in ('"%ADB%" shell getprop ro.product.marketname') do set "MDL=%%m"
+        if "!MDL!"=="" for /f "delims=" %%m in ('"%ADB%" shell getprop ro.config.marketing_name') do set "MDL=%%m"
+        if "!MDL!"=="" for /f "delims=" %%m in ('"%ADB%" shell getprop ro.product.model') do set "MDL=%%m"
         set "MFR_CN=!MFR!"
         if /i "!MFR!"=="xiaomi"    set "MFR_CN=小米"
         if /i "!MFR!"=="redmi"     set "MFR_CN=红米"
@@ -92,26 +98,26 @@ for /f "skip=1 tokens=1,2" %%a in ('"%ADB%" devices') do (
         if /i "!MFR!"=="zte"       set "MFR_CN=中兴"
         if /i "!MFR!"=="lenovo"    set "MFR_CN=联想"
         if /i "!MFR!"=="motorola"  set "MFR_CN=摩托罗拉"
+        set "DEVICE_STR=!MFR_CN! !MDL!"
         echo [OK] 检测到设备: !MFR_CN! !MDL!
-        goto :EOF
+        exit /b
     )
     if "%%b"=="unauthorized" (
+        set "DEVICE_STR=未授权"
         echo [错误] 设备未授权 (%%a)
         echo [失败] 请在手机上点击允许USB调试 然后重试。
-        set "ADB_OK="
-        goto :EOF
+        exit /b
     )
     if "%%b"=="offline" (
+        set "DEVICE_STR=离线"
         echo [错误] 设备离线 (%%a)
         echo [失败] 请拔插USB线后重试。
-        set "ADB_OK="
-        goto :EOF
+        exit /b
     )
 )
 echo [错误] 未检测到任何设备。
-echo        请确认：USB线已连接、手机已开启USB调试、驱动已安装。
-set "ADB_OK="
-goto :EOF
+echo        请确认 USB线已连接 手机已开启USB调试 驱动已安装
+exit /b
 
 :: ------------------ [1. 同步到手机] ------------------
 :TO_MOBILE
@@ -122,6 +128,7 @@ call :CONFIRM
 set "BK=%MB_ROOT%\%ts%"
 "%ADB%" shell "am force-stop %PKG%"
 echo [1/4] 正在备份手机现有存档...
+echo [%time%] 进入TO_MOBILE >> "%LOG%"
 for %%p in (1 2 3) do (
     mkdir "%BK%\profile%%p\history" 2>nul
     "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/progress.save" > "%BK%\profile%%p\progress.save" 2>nul
@@ -131,6 +138,7 @@ for %%p in (1 2 3) do (
 )
 "%ADB%" shell "run-as %PKG% cat files/default/1/profile.save" > "%BK%\profile.save" 2>nul
 echo [2/4] 正在推送PC存档到中转站...
+echo [%time%] 开始推送 >> "%LOG%"
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge && mkdir -p /data/local/tmp/sts_bridge"
 for %%p in (1 2 3) do (
     "%ADB%" shell "mkdir -p /data/local/tmp/sts_bridge/profile%%p/history"
@@ -142,17 +150,40 @@ for %%p in (1 2 3) do (
 "%ADB%" push "!PC_SAVE!\profile.save" /data/local/tmp/sts_bridge/ >nul
 "%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge"
 echo [3/4] 正在写入手机存档...
+echo [%time%] 开始写入 >> "%LOG%"
 "%ADB%" shell "run-as %PKG% sh -c 'cat /data/local/tmp/sts_bridge/profile.save > files/default/1/profile.save'"
-for %%p in (1 2 3) do (
-    "%ADB%" shell "run-as %PKG% sh -c 'rm -rf files/default/1/profile%%p/saves/history && mkdir -p files/default/1/profile%%p/saves/history'"
-    "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/progress.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/progress.save > files/default/1/profile%%p/saves/progress.save; fi'"
-    "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/prefs.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/prefs.save > files/default/1/profile%%p/saves/prefs.save; fi'"
-    "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/current_run.save > files/default/1/profile%%p/saves/current_run.save; fi'"
-    "%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile%%p/history/*.run; do [ -f \"$f\" ] || continue; sed \"s/\\\"platform_type\\\": \\\"steam\\\"/\\\"platform_type\\\": \\\"none\\\"/g; s/\\\"build_id\\\": \\\"v0.98.1\\\"/\\\"build_id\\\": \\\"v0.98.0\\\"/g\" \"$f\" > \"files/default/1/profile%%p/saves/history/$(basename $f)\"; done'"
+echo [%time%] profile.save写入完成 >> "%LOG%"
+echo A >> "%LOG%"
+"%ADB%" shell "run-as %PKG% sh -c 'rm -rf files/default/1/profile1/saves/history && mkdir -p files/default/1/profile1/saves/history'"
+echo B >> "%LOG%"
+"%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/progress.save ]; then cat /data/local/tmp/sts_bridge/profile1/progress.save > files/default/1/profile1/saves/progress.save; fi'"
+echo C >> "%LOG%"
+"%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/prefs.save ]; then cat /data/local/tmp/sts_bridge/profile1/prefs.save > files/default/1/profile1/saves/prefs.save; fi'"
+echo D >> "%LOG%"
+"%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile1/current_run.save > files/default/1/profile1/saves/current_run.save; fi'"
+echo E >> "%LOG%"
+:: 把history先pull到本地做替换再push回去
+set "HIST_TMP=%~dp0hist_tmp"
+rmdir /s /q "%HIST_TMP%" 2>nul & mkdir "%HIST_TMP%" 2>nul
+"%ADB%" pull /data/local/tmp/sts_bridge/profile1/history/. "%HIST_TMP%" >nul
+powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%HIST_TMP%' -Filter *.run | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '\"platform_type\":\s*\"steam\"','\"platform_type\": \"none\"'; $c=$c -replace '\"build_id\":\s*\"v0.98.1\"','\"build_id\": \"v0.98.0\"'; [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }"
+"%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge/profile1/history"
+"%ADB%" push "%HIST_TMP%\." /data/local/tmp/sts_bridge/profile1/history/ >nul
+for /f %%f in ('%ADB% shell "run-as %PKG% ls files/default/1/profile1/saves/history/ 2>/dev/null"') do (
+    "%ADB%" shell "run-as %PKG% cat files/default/1/profile1/saves/history/%%f > /dev/null"
 )
+for /f %%h in ('dir /b "%HIST_TMP%\*.run" 2^>nul') do (
+    "%ADB%" shell "run-as %PKG% sh -c 'cat /data/local/tmp/sts_bridge/profile1/history/%%h > files/default/1/profile1/saves/history/%%h'"
+)
+rmdir /s /q "%HIST_TMP%" 2>nul
+echo F >> "%LOG%"
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge"
+echo [%time%] for循环写入完成 >> "%LOG%"
 echo [4/4] 正在清理旧备份...
+echo [%time%] 开始CLEANUP >> "%LOG%"
 call :CLEANUP "%MB_ROOT%"
+echo [%time%] CLEANUP完成 >> "%LOG%"
+echo [%time%] 同步全部完成 >> "%LOG%"
 echo [OK] 同步完成。
 pause & goto MENU
 
@@ -202,8 +233,6 @@ powershell -Command "$utf8 = New-Object System.Text.UTF8Encoding $False; Get-Chi
 attrib -r "!PC_SAVE!\*.*" /s >nul 2>&1
 if not "!REMOTE_SAVE!"=="" attrib -r "!REMOTE_SAVE!\*.*" /s >nul 2>&1
 copy /y "%TEMP_P%\profile.save" "!PC_SAVE!\profile.save" >nul
-:: progress.save 在根目录也有一份
-if exist "%TEMP_P%\profile1\progress.save" copy /y "%TEMP_P%\profile1\progress.save" "!PC_SAVE!\progress.save" >nul
 for %%p in (1 2 3) do (
     if exist "!PC_SAVE!\profile%%p\saves\" (
         if exist "%TEMP_P%\profile%%p\progress.save" copy /y "%TEMP_P%\profile%%p\progress.save" "!PC_SAVE!\profile%%p\saves\progress.save" >nul
@@ -236,7 +265,7 @@ echo [5/5] 正在清理旧备份...
 rmdir /s /q "%TEMP_P%"
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge"
 call :CLEANUP "%PC_ROOT%"
-echo [SUCCESS] 同步回电脑完成，且文字描述已保留。
+echo [OK] 同步完成。
 pause & goto MENU
 
 :RESTORE_PC
@@ -360,7 +389,7 @@ pause & goto MENU
 :CLEANUP
 set /a _cnt=0
 for /d %%d in ("%~1\*") do set /a _cnt+=1
-if !_cnt! leq %MAX_BK% goto :EOF
+if !_cnt! leq %MAX_BK% exit /b
 set /a _del=_cnt - MAX_BK
 set /a _done=0
 for /d %%d in ("%~1\*") do (
@@ -369,4 +398,4 @@ for /d %%d in ("%~1\*") do (
         set /a _done+=1
     )
 )
-goto :EOF
+exit /b
