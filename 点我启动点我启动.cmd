@@ -138,28 +138,21 @@ call :CONFIRM
 set "BK=%MB_ROOT%\%ts%"
 "%ADB%" shell "am force-stop %PKG%" >nul 2>&1
 echo [1/4] 正在备份手机现有存档...
-"%ADB%" shell "rm -rf /data/local/tmp/sts_bk && mkdir -p /data/local/tmp/sts_bk" >nul 2>&1
-for %%p in (1 2 3) do (
-    "%ADB%" shell "mkdir -p /data/local/tmp/sts_bk/profile%%p/history" >nul 2>&1
-    "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/progress.save > /data/local/tmp/sts_bk/profile%%p/progress.save 2>/dev/null" >nul 2>&1
-    "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/prefs.save > /data/local/tmp/sts_bk/profile%%p/prefs.save 2>/dev/null" >nul 2>&1
-    "%ADB%" shell "if run-as %PKG% ls files/default/1/profile%%p/saves/current_run.save >/dev/null 2>&1; then run-as %PKG% cat files/default/1/profile%%p/saves/current_run.save > /data/local/tmp/sts_bk/profile%%p/current_run.save; fi" >nul 2>&1
-    for /f "tokens=1 delims=." %%n in ('"%ADB%" shell "run-as %PKG% ls files/default/1/profile%%p/saves/history/ 2>/dev/null" 2^>nul') do (
-        "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/history/%%n.run > /data/local/tmp/sts_bk/profile%%p/history/%%n.run 2>/dev/null" >nul 2>&1
-    )
-) 2>nul
-"%ADB%" shell "run-as %PKG% cat files/default/1/profile.save > /data/local/tmp/sts_bk/profile.save 2>/dev/null" >nul 2>&1
-"%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bk" >nul 2>&1
-set /a _bk_cnt=0
 for %%p in (1 2 3) do (
     mkdir "%BK%\profile%%p\history" 2>nul
-    "%ADB%" pull /data/local/tmp/sts_bk/profile%%p/. "%BK%\profile%%p" >nul 2>&1
-    "%ADB%" pull /data/local/tmp/sts_bk/profile%%p/history/. "%BK%\profile%%p\history" >nul 2>&1
-    for %%x in ("%BK%\profile%%p\history\*.run") do set /a _bk_cnt+=1
+    "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/progress.save" > "%BK%\profile%%p\progress.save" 2>nul
+    "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/prefs.save" > "%BK%\profile%%p\prefs.save" 2>nul
+    "%ADB%" shell "if run-as %PKG% ls files/default/1/profile%%p/saves/current_run.save >/dev/null 2>&1; then run-as %PKG% cat files/default/1/profile%%p/saves/current_run.save; fi" > "%BK%\profile%%p\current_run.save" 2>nul
+    for /f %%f in ('%ADB% shell "run-as %PKG% ls files/default/1/profile%%p/saves/history/ 2>/dev/null"') do (
+        "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/history/%%f" > "%BK%\profile%%p\history\%%f" 2>nul
+    )
 )
-"%ADB%" pull /data/local/tmp/sts_bk/profile.save "%BK%\profile.save" >nul 2>&1
-if !_bk_cnt! gtr 0 echo  已备份 !_bk_cnt! 条历史记录
-"%ADB%" shell "rm -rf /data/local/tmp/sts_bk" >nul 2>&1
+"%ADB%" shell "run-as %PKG% cat files/default/1/profile.save" > "%BK%\profile.save" 2>nul
+set /a _bk_cnt=0
+for %%x in ("%BK%\profile1\history\*.run") do set /a _bk_cnt+=1
+for %%x in ("%BK%\profile2\history\*.run") do set /a _bk_cnt+=1
+for %%x in ("%BK%\profile3\history\*.run") do set /a _bk_cnt+=1
+if !_bk_cnt! gtr 0 (echo  已备份 !_bk_cnt! 条历史记录)
 echo [2/4] 正在推送PC存档到中转站...
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge && mkdir -p /data/local/tmp/sts_bridge" >nul 2>&1
 for %%p in (1 2 3) do (
@@ -211,40 +204,26 @@ robocopy "!PC_SAVE!" "%PC_ROOT%\%ts%" /E /R:0 /W:0 >nul
 set "TEMP_P=%~dp0temp_pull"
 rmdir /s /q "%TEMP_P%" 2>nul
 "%ADB%" shell "am force-stop %PKG%" >nul 2>&1
-"%ADB%" shell "rm -rf /data/local/tmp/sts_bridge && mkdir -p /data/local/tmp/sts_bridge" >nul 2>&1
-for %%p in (1 2 3) do (
-    "%ADB%" shell "mkdir -p /data/local/tmp/sts_bridge/profile%%p/history" >nul 2>&1
-    mkdir "%TEMP_P%\profile%%p\history" 2>nul
-)
-"%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge" >nul 2>&1
+for %%p in (1 2 3) do mkdir "%TEMP_P%\profile%%p\history" 2>nul
 
 echo [2/5] 正在从手机抓取存档...
-"%ADB%" shell "run-as %PKG% cat files/default/1/profile.save > /data/local/tmp/sts_bridge/profile.save" >nul 2>&1
-if errorlevel 1 (
+"%ADB%" shell "run-as %PKG% cat files/default/1/profile.save" > "%TEMP_P%\profile.save" 2>nul
+for %%z in ("%TEMP_P%\profile.save") do if %%~zz==0 (
     echo [错误] 读取手机存档失败
     echo [提示] 游戏未安装或未启动过，小米用户需开启「禁用权限监控」
-    "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge" >nul 2>&1
     pause & goto MENU
 )
 for %%p in (1 2 3) do (
-    "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/progress.save > /data/local/tmp/sts_bridge/profile%%p/progress.save 2>/dev/null" >nul 2>&1
-    "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/prefs.save > /data/local/tmp/sts_bridge/profile%%p/prefs.save 2>/dev/null" >nul 2>&1
-    "%ADB%" shell "if run-as %PKG% ls files/default/1/profile%%p/saves/current_run.save >/dev/null 2>&1; then run-as %PKG% cat files/default/1/profile%%p/saves/current_run.save > /data/local/tmp/sts_bridge/profile%%p/current_run.save; fi" >nul 2>&1
-    
-    :: --- 针对 Android 14 历史记录抓取的增强逻辑 ---
-    "%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge/profile%%p/history" >nul 2>&1
-    for /f "tokens=1 delims=." %%n in ('"%ADB%" shell "run-as %PKG% ls files/default/1/profile%%p/saves/history/ 2>/dev/null" 2^>nul') do (
-        if not "%%n"=="" (
-            "%ADB%" shell "run-as %PKG% sh -c 'cat files/default/1/profile%%p/saves/history/%%n.run > /data/local/tmp/sts_bridge/profile%%p/history/%%n.run'" >nul 2>&1
-        )
+    "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/progress.save" > "%TEMP_P%\profile%%p\progress.save" 2>nul
+    "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/prefs.save" > "%TEMP_P%\profile%%p\prefs.save" 2>nul
+    "%ADB%" shell "if run-as %PKG% ls files/default/1/profile%%p/saves/current_run.save >/dev/null 2>&1; then run-as %PKG% cat files/default/1/profile%%p/saves/current_run.save; fi" > "%TEMP_P%\profile%%p\current_run.save" 2>nul
+    for /f %%f in ('%ADB% shell "run-as %PKG% ls files/default/1/profile%%p/saves/history/ 2>/dev/null"') do (
+        "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/history/%%f" > "%TEMP_P%\profile%%p\history\%%f" 2>nul
     )
 )
+"%ADB%" shell "run-as %PKG% cat files/default/1/profile.save" > "%TEMP_P%\profile.save" 2>nul
 
-echo [3/5] 正在拉取文件到本地...
-"%ADB%" pull /data/local/tmp/sts_bridge/. "%TEMP_P%" >nul 2>&1
-for %%p in (1 2 3) do (
-    "%ADB%" pull /data/local/tmp/sts_bridge/profile%%p/history/. "%TEMP_P%\profile%%p\history" >nul 2>&1
-)
+echo [3/5] 正在统计历史记录...
 set /a _total=0
 for %%p in (1 2 3) do (
     set /a _c=0
@@ -288,7 +267,6 @@ if not "!REMOTE_SAVE!"=="" (
 
 echo [5/5] 正在清理旧备份...
 rmdir /s /q "%TEMP_P%" 2>nul
-"%ADB%" shell "rm -rf /data/local/tmp/sts_bridge" >nul 2>&1
 call :CLEANUP "%PC_ROOT%"
 echo [OK] 同步完成。共 !_total! 条历史记录。
 pause & goto MENU
@@ -351,9 +329,9 @@ for %%p in (1 2 3) do (
     "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/prefs.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/prefs.save > files/default/1/profile%%p/saves/prefs.save; fi'" >nul 2>&1
     "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/current_run.save > files/default/1/profile%%p/saves/current_run.save; fi'" >nul 2>&1
 )
-"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile1/history/*.run; do [ -f \"$f\" ] || continue; cat \"$f\" > \"files/default/1/profile1/saves/history/$(basename $f)\"; done'" >nul 2>&1
-"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile2/history/*.run; do [ -f \"$f\" ] || continue; cat \"$f\" > \"files/default/1/profile2/saves/history/$(basename $f)\"; done'" >nul 2>&1
-"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile3/history/*.run; do [ -f \"$f\" ] || continue; cat \"$f\" > \"files/default/1/profile3/saves/history/$(basename $f)\"; done'" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile1/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile1/saves/history/$(basename $f)"; done'" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile2/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile2/saves/history/$(basename $f)"; done'" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile3/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile3/saves/history/$(basename $f)"; done'" >nul 2>&1
 echo [3/3] 正在清理中转站...
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge" >nul 2>&1
 echo [OK] 已恢复: !S_BK!
@@ -366,28 +344,16 @@ call :CONFIRM
 echo 正在导出...
 set "EXP=%EXP_ROOT%\%ts%"
 "%ADB%" shell "am force-stop %PKG%" >nul 2>&1
-"%ADB%" shell "rm -rf /data/local/tmp/sts_bridge && mkdir -p /data/local/tmp/sts_bridge" >nul 2>&1
+for %%p in (1 2 3) do mkdir "%EXP%\profile%%p\history" 2>nul
+"%ADB%" shell "run-as %PKG% cat files/default/1/profile.save" > "%EXP%\profile.save" 2>nul
 for %%p in (1 2 3) do (
-    "%ADB%" shell "mkdir -p /data/local/tmp/sts_bridge/profile%%p/history" >nul 2>&1
-    mkdir "%EXP%\profile%%p\history" 2>nul
-)
-"%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge" >nul 2>&1
-"%ADB%" shell "run-as %PKG% cat files/default/1/profile.save > /data/local/tmp/sts_bridge/profile.save" >nul 2>&1
-for %%p in (1 2 3) do (
-    "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/progress.save > /data/local/tmp/sts_bridge/profile%%p/progress.save 2>/dev/null" >nul 2>&1
-    
-    "%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge/profile%%p/history" >nul 2>&1
-    for /f "tokens=1 delims=." %%n in ('"%ADB%" shell "run-as %PKG% ls files/default/1/profile%%p/saves/history/ 2>/dev/null" 2^>nul') do (
-        if not "%%n"=="" (
-            "%ADB%" shell "run-as %PKG% sh -c 'cat files/default/1/profile%%p/saves/history/%%n.run > /data/local/tmp/sts_bridge/profile%%p/history/%%n.run'" >nul 2>&1
-        )
+    "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/progress.save" > "%EXP%\profile%%p\progress.save" 2>nul
+    "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/prefs.save" > "%EXP%\profile%%p\prefs.save" 2>nul
+    "%ADB%" shell "if run-as %PKG% ls files/default/1/profile%%p/saves/current_run.save >/dev/null 2>&1; then run-as %PKG% cat files/default/1/profile%%p/saves/current_run.save; fi" > "%EXP%\profile%%p\current_run.save" 2>nul
+    for /f %%f in ('%ADB% shell "run-as %PKG% ls files/default/1/profile%%p/saves/history/ 2>/dev/null"') do (
+        "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/history/%%f" > "%EXP%\profile%%p\history\%%f" 2>nul
     )
 )
-"%ADB%" pull /data/local/tmp/sts_bridge/. "%EXP%" >nul 2>&1
-for %%p in (1 2 3) do (
-    "%ADB%" pull /data/local/tmp/sts_bridge/profile%%p/history/. "%EXP%\profile%%p\history" >nul 2>&1
-)
-"%ADB%" shell "rm -rf /data/local/tmp/sts_bridge" >nul 2>&1
 echo [OK] 导出完成，路径: %EXP%
 pause & goto MENU
 
