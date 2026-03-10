@@ -154,16 +154,28 @@ for %%x in ("%BK%\profile2\history\*.run") do set /a _bk_cnt+=1
 for %%x in ("%BK%\profile3\history\*.run") do set /a _bk_cnt+=1
 if !_bk_cnt! gtr 0 (echo  已备份 !_bk_cnt! 条历史记录)
 echo [2/4] 正在推送PC存档到中转站...
+set "PUSH_TMP=%~dp0push_tmp"
+rmdir /s /q "%PUSH_TMP%" 2>nul
+for %%p in (1 2 3) do mkdir "%PUSH_TMP%\profile%%p\history" 2>nul
+for %%p in (1 2 3) do (
+    if exist "!PC_SAVE!\profile%%p\saves\progress.save"    copy /y "!PC_SAVE!\profile%%p\saves\progress.save"    "%PUSH_TMP%\profile%%p\progress.save" >nul
+    if exist "!PC_SAVE!\profile%%p\saves\prefs.save"       copy /y "!PC_SAVE!\profile%%p\saves\prefs.save"       "%PUSH_TMP%\profile%%p\prefs.save" >nul
+    if exist "!PC_SAVE!\profile%%p\saves\current_run.save" copy /y "!PC_SAVE!\profile%%p\saves\current_run.save" "%PUSH_TMP%\profile%%p\current_run.save" >nul
+    if exist "!PC_SAVE!\profile%%p\saves\history" robocopy "!PC_SAVE!\profile%%p\saves\history" "%PUSH_TMP%\profile%%p\history" /E /R:0 /W:0 >nul
+)
+if exist "!PC_SAVE!\profile.save" copy /y "!PC_SAVE!\profile.save" "%PUSH_TMP%\profile.save" >nul
+powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%PUSH_TMP%' -Recurse | Where-Object { -not $_.PSIsContainer } | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c.Replace("`r`n","`n").Replace("`r","`n"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge && mkdir -p /data/local/tmp/sts_bridge" >nul 2>&1
 for %%p in (1 2 3) do (
     "%ADB%" shell "mkdir -p /data/local/tmp/sts_bridge/profile%%p/history" >nul 2>&1
-    if exist "!PC_SAVE!\profile%%p\saves\progress.save"    "%ADB%" push "!PC_SAVE!\profile%%p\saves\progress.save"    /data/local/tmp/sts_bridge/profile%%p/ >nul 2>&1
-    if exist "!PC_SAVE!\profile%%p\saves\prefs.save"       "%ADB%" push "!PC_SAVE!\profile%%p\saves\prefs.save"       /data/local/tmp/sts_bridge/profile%%p/ >nul 2>&1
-    if exist "!PC_SAVE!\profile%%p\saves\current_run.save" "%ADB%" push "!PC_SAVE!\profile%%p\saves\current_run.save" /data/local/tmp/sts_bridge/profile%%p/ >nul 2>&1
-    if exist "!PC_SAVE!\profile%%p\saves\history"          "%ADB%" push "!PC_SAVE!\profile%%p\saves\history/." /data/local/tmp/sts_bridge/profile%%p/history/ >nul 2>&1
+    if exist "%PUSH_TMP%\profile%%p\progress.save"    "%ADB%" push "%PUSH_TMP%\profile%%p\progress.save"    /data/local/tmp/sts_bridge/profile%%p/ >nul 2>&1
+    if exist "%PUSH_TMP%\profile%%p\prefs.save"       "%ADB%" push "%PUSH_TMP%\profile%%p\prefs.save"       /data/local/tmp/sts_bridge/profile%%p/ >nul 2>&1
+    if exist "%PUSH_TMP%\profile%%p\current_run.save" "%ADB%" push "%PUSH_TMP%\profile%%p\current_run.save" /data/local/tmp/sts_bridge/profile%%p/ >nul 2>&1
+    if exist "%PUSH_TMP%\profile%%p\history"          "%ADB%" push "%PUSH_TMP%\profile%%p\history/." /data/local/tmp/sts_bridge/profile%%p/history/ >nul 2>&1
 )
-"%ADB%" push "!PC_SAVE!\profile.save" /data/local/tmp/sts_bridge/ >nul 2>&1
+if exist "%PUSH_TMP%\profile.save" "%ADB%" push "%PUSH_TMP%\profile.save" /data/local/tmp/sts_bridge/ >nul 2>&1
 "%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge" >nul 2>&1
+rmdir /s /q "%PUSH_TMP%" 2>nul
 echo [3/4] 正在写入手机存档...
 "%ADB%" shell "run-as %PKG% sh -c 'cat /data/local/tmp/sts_bridge/profile.save > files/default/1/profile.save'" >nul 2>&1
 "%ADB%" shell "run-as %PKG% sh -c 'rm -rf files/default/1/profile1/saves/history && mkdir -p files/default/1/profile1/saves/history'" >nul 2>&1
@@ -178,7 +190,7 @@ set /a _hcnt=0
 for %%x in ("%HIST_TMP%\*.run") do set /a _hcnt+=1
 if !_hcnt! gtr 0 (
     echo  正在转换历史记录 (!_hcnt! 条^)...
-    powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%HIST_TMP%' -Filter *.run | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '\"platform_type\":\s*\"steam\"','\"platform_type\": \"none\"'; $c=$c -replace '\"build_id\":\s*\"v0.98.1\"','\"build_id\": \"v0.98.0\"'; [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
+    powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%HIST_TMP%' -Filter *.run | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '\"platform_type\":\s*\"steam\"','\"platform_type\": \"none\"'; $c=$c -replace '\"build_id\":\s*\"v0.98.1\"','\"build_id\": \"v0.98.0\"'; $c=$c.Replace("`r`n","`n").Replace("`r","`n"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
     "%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge/profile1/history" >nul 2>&1
     "%ADB%" push "%HIST_TMP%\." /data/local/tmp/sts_bridge/profile1/history/ >nul 2>&1
     for /f %%h in ('dir /b "%HIST_TMP%\*.run" 2^>nul') do (
@@ -233,7 +245,7 @@ for %%p in (1 2 3) do (
 )
 
 echo [4/5] 正在执行无损适配并写入存档...
-powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%TEMP_P%' -Recurse -Include *.run,*.save | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '\"platform_type\":\s*\"none\"','\"platform_type\": \"steam\"'; $c=$c -replace '\"build_id\":\s*\"v0.98.0\"','\"build_id\": \"v0.98.1\"'; [System.IO.File]::WriteAllText($_.FullName,$c,$utf8); (Get-Item $_.FullName).LastWriteTime=Get-Date }" >nul 2>&1
+powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%TEMP_P%' -Recurse -Include *.save | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '\"platform_type\":\s*\"none\"','\"platform_type\": \"steam\"'; $c=$c -replace '\"build_id\":\s*\"v0.98.0\"','\"build_id\": \"v0.98.1\"'; [System.IO.File]::WriteAllText($_.FullName,$c,$utf8); (Get-Item $_.FullName).LastWriteTime=Get-Date }" >nul 2>&1
 attrib -r "!PC_SAVE!\*.*" /s >nul 2>&1
 if not "!REMOTE_SAVE!"=="" attrib -r "!REMOTE_SAVE!\*.*" /s >nul 2>&1
 copy /y "%TEMP_P%\profile.save" "!PC_SAVE!\profile.save" >nul
@@ -246,6 +258,7 @@ for %%p in (1 2 3) do (
         ) else (
             if exist "!PC_SAVE!\profile%%p\saves\current_run.save" del "!PC_SAVE!\profile%%p\saves\current_run.save"
         )
+        if exist "!PC_SAVE!\profile%%p\saves\history" del /q "!PC_SAVE!\profile%%p\saves\history\*.run" >nul 2>&1
         robocopy "%TEMP_P%\profile%%p\history" "!PC_SAVE!\profile%%p\saves\history" /E /R:0 /W:0 >nul
     )
 )
@@ -259,6 +272,7 @@ if not "!REMOTE_SAVE!"=="" (
             ) else (
                 if exist "!REMOTE_SAVE!\profile%%p\saves\current_run.save" del "!REMOTE_SAVE!\profile%%p\saves\current_run.save"
             )
+            if exist "!REMOTE_SAVE!\profile%%p\saves\history" del /q "!REMOTE_SAVE!\profile%%p\saves\history\*.run" >nul 2>&1
             robocopy "%TEMP_P%\profile%%p\history" "!REMOTE_SAVE!\profile%%p\saves\history" /E /R:0 /W:0 >nul
         )
     )
