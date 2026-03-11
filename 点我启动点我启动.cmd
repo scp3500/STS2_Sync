@@ -160,7 +160,7 @@ for %%p in (1 2 3) do mkdir "%PUSH_TMP%\profile%%p\history" 2>nul
 for %%p in (1 2 3) do (
     if exist "!PC_SAVE!\profile%%p\saves\progress.save"    copy /y "!PC_SAVE!\profile%%p\saves\progress.save"    "%PUSH_TMP%\profile%%p\progress.save" >nul
     if exist "!PC_SAVE!\profile%%p\saves\prefs.save"       copy /y "!PC_SAVE!\profile%%p\saves\prefs.save"       "%PUSH_TMP%\profile%%p\prefs.save" >nul
-    if exist "!PC_SAVE!\profile%%p\saves\current_run.save" copy /y "!PC_SAVE!\profile%%p\saves\current_run.save" "%PUSH_TMP%\profile%%p\current_run.save" >nul
+    if exist "!PC_SAVE!\profile%%p\saves\current_run.save" for %%z in ("!PC_SAVE!\profile%%p\saves\current_run.save") do if %%~zz gtr 0 copy /y "!PC_SAVE!\profile%%p\saves\current_run.save" "%PUSH_TMP%\profile%%p\current_run.save" >nul
     if exist "!PC_SAVE!\profile%%p\saves\history" robocopy "!PC_SAVE!\profile%%p\saves\history" "%PUSH_TMP%\profile%%p\history" /E /R:0 /W:0 >nul
 )
 if exist "!PC_SAVE!\profile.save" copy /y "!PC_SAVE!\profile.save" "%PUSH_TMP%\profile.save" >nul
@@ -181,7 +181,7 @@ echo [3/4] 正在写入手机存档...
 "%ADB%" shell "run-as %PKG% sh -c 'rm -rf files/default/1/profile1/saves/history && mkdir -p files/default/1/profile1/saves/history'" >nul 2>&1
 "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/progress.save ]; then cat /data/local/tmp/sts_bridge/profile1/progress.save > files/default/1/profile1/saves/progress.save; fi'" >nul 2>&1
 "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/prefs.save ]; then cat /data/local/tmp/sts_bridge/profile1/prefs.save > files/default/1/profile1/saves/prefs.save; fi'" >nul 2>&1
-"%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile1/current_run.save > files/default/1/profile1/saves/current_run.save; fi'" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/current_run.save ] && [ -s /data/local/tmp/sts_bridge/profile1/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile1/current_run.save > files/default/1/profile1/saves/current_run.save; fi'" >nul 2>&1
 set "HIST_TMP=%~dp0hist_tmp"
 rmdir /s /q "%HIST_TMP%" 2>nul
 mkdir "%HIST_TMP%" 2>nul
@@ -200,6 +200,7 @@ if !_hcnt! gtr 0 (
 rmdir /s /q "%HIST_TMP%" 2>nul
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge" >nul 2>&1
 echo [4/4] 正在清理旧备份...
+"%ADB%" shell "run-as %PKG% sh -c 'find files/default/1 -name '*.corrupt' -delete; find files/default/1 -name '*.run' -size 0 -delete; find files/default/1 -name '*.save' -size 0 -delete'" >nul 2>&1
 call :CLEANUP "%MB_ROOT%"
 echo [OK] 同步完成。
 pause & goto MENU
@@ -253,13 +254,13 @@ for %%p in (1 2 3) do (
     if exist "!PC_SAVE!\profile%%p\saves\" (
         if exist "%TEMP_P%\profile%%p\progress.save"    copy /y "%TEMP_P%\profile%%p\progress.save"    "!PC_SAVE!\profile%%p\saves\progress.save" >nul
         if exist "%TEMP_P%\profile%%p\prefs.save"       copy /y "%TEMP_P%\profile%%p\prefs.save"       "!PC_SAVE!\profile%%p\saves\prefs.save" >nul
-        if exist "%TEMP_P%\profile%%p\current_run.save" (
+        for %%z in ("%TEMP_P%\profile%%p\current_run.save") do if %%~zz gtr 0 (
             copy /y "%TEMP_P%\profile%%p\current_run.save" "!PC_SAVE!\profile%%p\saves\current_run.save" >nul
         ) else (
             if exist "!PC_SAVE!\profile%%p\saves\current_run.save" del "!PC_SAVE!\profile%%p\saves\current_run.save"
         )
         if exist "!PC_SAVE!\profile%%p\saves\history" del /q "!PC_SAVE!\profile%%p\saves\history\*.run" >nul 2>&1
-        robocopy "%TEMP_P%\profile%%p\history" "!PC_SAVE!\profile%%p\saves\history" /E /R:0 /W:0 >nul
+        robocopy "%TEMP_P%\profile%%p\history" "!PC_SAVE!\profile%%p\saves\history" /E /R:0 /W:0 /XF *.backup >nul
     )
 )
 if not "!REMOTE_SAVE!"=="" (
@@ -267,21 +268,25 @@ if not "!REMOTE_SAVE!"=="" (
         if exist "!REMOTE_SAVE!\profile%%p\saves\" (
             if exist "%TEMP_P%\profile%%p\progress.save"    copy /y "%TEMP_P%\profile%%p\progress.save"    "!REMOTE_SAVE!\profile%%p\saves\progress.save" >nul
             if exist "%TEMP_P%\profile%%p\prefs.save"       copy /y "%TEMP_P%\profile%%p\prefs.save"       "!REMOTE_SAVE!\profile%%p\saves\prefs.save" >nul
-            if exist "%TEMP_P%\profile%%p\current_run.save" (
+            for %%z in ("%TEMP_P%\profile%%p\current_run.save") do if %%~zz gtr 0 (
                 copy /y "%TEMP_P%\profile%%p\current_run.save" "!REMOTE_SAVE!\profile%%p\saves\current_run.save" >nul
             ) else (
                 if exist "!REMOTE_SAVE!\profile%%p\saves\current_run.save" del "!REMOTE_SAVE!\profile%%p\saves\current_run.save"
             )
             if exist "!REMOTE_SAVE!\profile%%p\saves\history" del /q "!REMOTE_SAVE!\profile%%p\saves\history\*.run" >nul 2>&1
-            robocopy "%TEMP_P%\profile%%p\history" "!REMOTE_SAVE!\profile%%p\saves\history" /E /R:0 /W:0 >nul
+            robocopy "%TEMP_P%\profile%%p\history" "!REMOTE_SAVE!\profile%%p\saves\history" /E /R:0 /W:0 /XF *.backup >nul
         )
     )
-    if exist "!REMOTE_SAVE!\..\..\remotecache.vdf" del /f /q "!REMOTE_SAVE!\..\..\remotecache.vdf"
+    if exist "!REMOTE_SAVE!\..\remotecache.vdf" del /f /q "!REMOTE_SAVE!\..\remotecache.vdf"
 )
 
 echo [5/5] 正在清理旧备份...
 rmdir /s /q "%TEMP_P%" 2>nul
 call :CLEANUP "%PC_ROOT%"
+for /r "!PC_SAVE!" %%f in (*.corrupt) do del /f /q "%%f" >nul 2>&1
+for /r "!PC_SAVE!" %%f in (*.save) do for %%z in ("%%f") do if %%~zz==0 del /f /q "%%f" >nul 2>&1
+if not "!REMOTE_SAVE!"=="" for /r "!REMOTE_SAVE!" %%f in (*.corrupt) do del /f /q "%%f" >nul 2>&1
+if not "!REMOTE_SAVE!"=="" for /r "!REMOTE_SAVE!" %%f in (*.save) do for %%z in ("%%f") do if %%~zz==0 del /f /q "%%f" >nul 2>&1
 echo [OK] 同步完成。共 !_total! 条历史记录。
 pause & goto MENU
 
@@ -305,8 +310,12 @@ if not "!REMOTE_SAVE!"=="" (
             robocopy "!PC_SAVE!\profile%%p\saves" "!REMOTE_SAVE!\profile%%p\saves" /E /R:0 /W:0 >nul
         )
     )
-    if exist "!REMOTE_SAVE!\..\..\remotecache.vdf" del /f /q "!REMOTE_SAVE!\..\..\remotecache.vdf"
+    if exist "!REMOTE_SAVE!\..\remotecache.vdf" del /f /q "!REMOTE_SAVE!\..\remotecache.vdf"
 )
+for /r "!PC_SAVE!" %%f in (*.corrupt) do del /f /q "%%f" >nul 2>&1
+for /r "!PC_SAVE!" %%f in (*.save) do for %%z in ("%%f") do if %%~zz==0 del /f /q "%%f" >nul 2>&1
+if not "!REMOTE_SAVE!"=="" for /r "!REMOTE_SAVE!" %%f in (*.corrupt) do del /f /q "%%f" >nul 2>&1
+if not "!REMOTE_SAVE!"=="" for /r "!REMOTE_SAVE!" %%f in (*.save) do for %%z in ("%%f") do if %%~zz==0 del /f /q "%%f" >nul 2>&1
 echo [OK] 已恢复: !S_BK!
 pause & goto MENU
 
@@ -330,7 +339,7 @@ for %%p in (1 2 3) do (
     "%ADB%" shell "mkdir -p /data/local/tmp/sts_bridge/profile%%p/history" >nul 2>&1
     if exist "%MB_ROOT%\!S_BK!\profile%%p\progress.save"    "%ADB%" push "%MB_ROOT%\!S_BK!\profile%%p\progress.save"    /data/local/tmp/sts_bridge/profile%%p/ >nul 2>&1
     if exist "%MB_ROOT%\!S_BK!\profile%%p\prefs.save"       "%ADB%" push "%MB_ROOT%\!S_BK!\profile%%p\prefs.save"       /data/local/tmp/sts_bridge/profile%%p/ >nul 2>&1
-    if exist "%MB_ROOT%\!S_BK!\profile%%p\current_run.save" "%ADB%" push "%MB_ROOT%\!S_BK!\profile%%p\current_run.save" /data/local/tmp/sts_bridge/profile%%p/ >nul 2>&1
+    for %%z in ("%MB_ROOT%\!S_BK!\profile%%p\current_run.save") do if %%~zz gtr 0 "%ADB%" push "%MB_ROOT%\!S_BK!\profile%%p\current_run.save" /data/local/tmp/sts_bridge/profile%%p/ >nul 2>&1
     if exist "%MB_ROOT%\!S_BK!\profile%%p\history"          "%ADB%" push "%MB_ROOT%\!S_BK!\profile%%p\history/." /data/local/tmp/sts_bridge/profile%%p/history/ >nul 2>&1
 )
 if exist "%MB_ROOT%\!S_BK!\profile.save" "%ADB%" push "%MB_ROOT%\!S_BK!\profile.save" /data/local/tmp/sts_bridge/ >nul 2>&1
@@ -341,13 +350,14 @@ for %%p in (1 2 3) do (
     "%ADB%" shell "run-as %PKG% sh -c 'rm -rf files/default/1/profile%%p/saves/history && mkdir -p files/default/1/profile%%p/saves/history'" >nul 2>&1
     "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/progress.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/progress.save > files/default/1/profile%%p/saves/progress.save; fi'" >nul 2>&1
     "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/prefs.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/prefs.save > files/default/1/profile%%p/saves/prefs.save; fi'" >nul 2>&1
-    "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/current_run.save > files/default/1/profile%%p/saves/current_run.save; fi'" >nul 2>&1
+    "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/current_run.save ] && [ -s /data/local/tmp/sts_bridge/profile%%p/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/current_run.save > files/default/1/profile%%p/saves/current_run.save; fi'" >nul 2>&1
 )
 "%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile1/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile1/saves/history/$(basename $f)"; done'" >nul 2>&1
 "%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile2/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile2/saves/history/$(basename $f)"; done'" >nul 2>&1
 "%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile3/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile3/saves/history/$(basename $f)"; done'" >nul 2>&1
 echo [3/3] 正在清理中转站...
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'find files/default/1 -name '*.corrupt' -delete; find files/default/1 -name '*.run' -size 0 -delete; find files/default/1 -name '*.save' -size 0 -delete'" >nul 2>&1
 echo [OK] 已恢复: !S_BK!
 pause & goto MENU
 
