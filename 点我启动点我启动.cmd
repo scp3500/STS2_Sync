@@ -1,6 +1,7 @@
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
+set "LOGFILE=%~dp0STS2_SYNC.log"
 
 :: =================配置区=================
 title STS2 SYNC V4.2
@@ -26,11 +27,11 @@ set "EXP_ROOT=%~dp0Mobile_Export"
 set "MAX_BK=10"
 
 if not exist "%ADB%" (echo [错误] 找不到 adb\adb.exe && pause && exit)
-set "LOG=%~dp0sts2_sync.log"
-echo [%date% %time%] 程序启动 > "%LOG%"
 set "DEVICE_STR=未检测"
 
 :MENU
+echo. >> "!LOGFILE!" 2>nul
+echo ===== %DATE% %TIME% ===== >> "!LOGFILE!" 2>nul
 cls
 echo ==========================================
 echo               STS2 SYNC
@@ -131,6 +132,7 @@ exit /b
 
 :: ------------------ [1. 同步到手机] ------------------
 :TO_MOBILE
+call :LOG "TO_MOBILE 开始"
 if "!PC_SAVE!"=="" (echo [错误] 未找到PC存档目录 & pause & goto MENU)
 call :CHECK_ADB
 if not defined ADB_OK (pause & goto MENU)
@@ -177,11 +179,51 @@ if exist "%PUSH_TMP%\profile.save" "%ADB%" push "%PUSH_TMP%\profile.save" /data/
 "%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge" >nul 2>&1
 rmdir /s /q "%PUSH_TMP%" 2>nul
 echo [3/4] 正在写入手机存档...
-"%ADB%" shell "run-as %PKG% sh -c 'cat /data/local/tmp/sts_bridge/profile.save > files/default/1/profile.save'" >nul 2>&1
-"%ADB%" shell "run-as %PKG% sh -c 'rm -rf files/default/1/profile1/saves/history && mkdir -p files/default/1/profile1/saves/history'" >nul 2>&1
-"%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/progress.save ]; then cat /data/local/tmp/sts_bridge/profile1/progress.save > files/default/1/profile1/saves/progress.save; fi'" >nul 2>&1
-"%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/prefs.save ]; then cat /data/local/tmp/sts_bridge/profile1/prefs.save > files/default/1/profile1/saves/prefs.save; fi'" >nul 2>&1
-"%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/current_run.save ] && [ -s /data/local/tmp/sts_bridge/profile1/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile1/current_run.save > files/default/1/profile1/saves/current_run.save; fi'" >nul 2>&1
+echo ------------------------------------------
+echo ------------------------------------------ >> "!LOGFILE!"
+for /f "delims=" %%v in ('"%ADB%" shell getprop ro.build.version.release 2^>^&1') do (echo  [诊断] Android版本: %%v & echo  [诊断] Android版本: %%v >> "!LOGFILE!")
+for /f "delims=" %%v in ('"%ADB%" shell getprop ro.product.manufacturer 2^>^&1') do (echo  [诊断] 设备品牌: %%v & echo  [诊断] 设备品牌: %%v >> "!LOGFILE!")
+for /f "delims=" %%v in ('"%ADB%" shell getenforce 2^>^&1') do (echo  [诊断] SELinux: %%v & echo  [诊断] SELinux: %%v >> "!LOGFILE!")
+echo ------------------------------------------
+echo ------------------------------------------ >> "!LOGFILE!"
+echo  [诊断] 测试 run-as 权限...
+echo  [诊断] 测试 run-as 权限... >> "!LOGFILE!"
+"%ADB%" shell "run-as %PKG% echo OK" > "%TEMP%\_sts2_runas.tmp" 2>&1
+set "_RUNAS_OUT="
+for /f "delims=" %%r in (%TEMP%\_sts2_runas.tmp) do set "_RUNAS_OUT=%%r"
+echo  结果: !_RUNAS_OUT!
+echo  结果: !_RUNAS_OUT! >> "!LOGFILE!"
+if not "!_RUNAS_OUT!"=="OK" (
+    echo  [警告] run-as 诊断异常: !_RUNAS_OUT!
+    echo  [警告] run-as 诊断异常 >> "!LOGFILE!"
+    echo  [提示] 小米/红米: 开发者选项 - 开启「禁用权限监控」
+    echo  [提示] 同步将继续，请完成后验证手机存档是否更新
+)
+echo  [诊断] 检查 bridge 目录内容...
+echo  [诊断] 检查 bridge 目录内容... >> "!LOGFILE!"
+"%ADB%" shell "ls -la /data/local/tmp/sts_bridge/" >> "!LOGFILE!" 2>&1
+echo  [诊断] 测试 run-as 读取 bridge 文件...
+echo  [诊断] 测试 run-as 读取 bridge 文件... >> "!LOGFILE!"
+"%ADB%" shell "run-as %PKG% ls /data/local/tmp/sts_bridge/profile.save" > "%TEMP%\_sts2_bridge.tmp" 2>&1
+set "_BRIDGE_OUT="
+for /f "delims=" %%r in (%TEMP%\_sts2_bridge.tmp) do set "_BRIDGE_OUT=%%r"
+echo  bridge可读性: !_BRIDGE_OUT!
+echo  bridge可读性: !_BRIDGE_OUT! >> "!LOGFILE!"
+echo ------------------------------------------
+echo ------------------------------------------ >> "!LOGFILE!"
+echo  写入 profile.save...
+echo  写入 profile.save... >> "!LOGFILE!"
+for /f "delims=" %%r in ('"%ADB%" shell "run-as %PKG% sh -c 'cat /data/local/tmp/sts_bridge/profile.save > files/default/1/profile.save ^&^& echo OK ^|^| echo FAIL'" 2^>^&1') do (echo  %%r & echo  %%r >> "!LOGFILE!")
+echo  建立目录结构...
+"%ADB%" shell "run-as %PKG% sh -c 'mkdir -p files/default/1/profile1/saves/history files/default/1/profile2/saves/history files/default/1/profile3/saves/history && echo OK || echo FAIL'" 2>&1 | findstr /v "^$"
+echo  清空旧 history...
+"%ADB%" shell "run-as %PKG% sh -c 'rm -f files/default/1/profile1/saves/history/*.run files/default/1/profile2/saves/history/*.run files/default/1/profile3/saves/history/*.run && echo OK'" 2>&1 | findstr /v "^$"
+echo  写入 progress.save...
+"%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/progress.save ]; then cat /data/local/tmp/sts_bridge/profile1/progress.save > files/default/1/profile1/saves/progress.save && echo OK || echo FAIL; else echo 源文件不存在; fi'" 2>&1 | findstr /v "^$"
+echo  写入 prefs.save...
+"%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/prefs.save ]; then cat /data/local/tmp/sts_bridge/profile1/prefs.save > files/default/1/profile1/saves/prefs.save && echo OK || echo FAIL; else echo 源文件不存在; fi'" 2>&1 | findstr /v "^$"
+echo  处理 current_run.save...
+"%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile1/current_run.save ] && [ -s /data/local/tmp/sts_bridge/profile1/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile1/current_run.save > files/default/1/profile1/saves/current_run.save && echo 写入OK || echo 写入FAIL; else rm -f files/default/1/profile1/saves/current_run.save && echo 无残局，已清除; fi'" 2>&1 | findstr /v "^$"
 set "HIST_TMP=%~dp0hist_tmp"
 rmdir /s /q "%HIST_TMP%" 2>nul
 mkdir "%HIST_TMP%" 2>nul
@@ -194,19 +236,45 @@ if !_hcnt! gtr 0 (
     "%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge/profile1/history" >nul 2>&1
     "%ADB%" push "%HIST_TMP%\." /data/local/tmp/sts_bridge/profile1/history/ >nul 2>&1
     for /f %%h in ('dir /b "%HIST_TMP%\*.run" 2^>nul') do (
-        "%ADB%" shell "run-as %PKG% sh -c 'cat /data/local/tmp/sts_bridge/profile1/history/%%h > files/default/1/profile1/saves/history/%%h'" >nul 2>&1
+        echo  history [p1] %%h...
+        "%ADB%" shell "run-as %PKG% sh -c 'cat /data/local/tmp/sts_bridge/profile1/history/%%h > files/default/1/profile1/saves/history/%%h && echo OK || echo FAIL'" 2>&1 | findstr /v "^$"
     )
 )
+set "HIST_TMP2=%~dp0hist_tmp2"
+rmdir /s /q "%HIST_TMP2%" 2>nul
+mkdir "%HIST_TMP2%" 2>nul
+"%ADB%" pull /data/local/tmp/sts_bridge/profile2/history/. "%HIST_TMP2%" >nul 2>&1
+powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%HIST_TMP2%' -Filter *.run | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '"platform_type":\s*"steam"','"platform_type": "none"'; $c=$c -replace '"build_id":\s*"v0.98.1"','"build_id": "v0.98.0"'; $c=$c.Replace("`r`n","`n").Replace("`r","`n"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
+"%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge/profile2/history" >nul 2>&1
+"%ADB%" push "%HIST_TMP2%\." /data/local/tmp/sts_bridge/profile2/history/ >nul 2>&1
+for /f %%h in ('dir /b "%HIST_TMP2%\*.run" 2^>nul') do (
+    echo  history [p2] %%h...
+    "%ADB%" shell "run-as %PKG% sh -c 'cat /data/local/tmp/sts_bridge/profile2/history/%%h > files/default/1/profile2/saves/history/%%h && echo OK || echo FAIL'" 2>&1 | findstr /v "^$"
+)
+rmdir /s /q "%HIST_TMP2%" 2>nul
+set "HIST_TMP3=%~dp0hist_tmp3"
+rmdir /s /q "%HIST_TMP3%" 2>nul
+mkdir "%HIST_TMP3%" 2>nul
+"%ADB%" pull /data/local/tmp/sts_bridge/profile3/history/. "%HIST_TMP3%" >nul 2>&1
+powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%HIST_TMP3%' -Filter *.run | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '"platform_type":\s*"steam"','"platform_type": "none"'; $c=$c -replace '"build_id":\s*"v0.98.1"','"build_id": "v0.98.0"'; $c=$c.Replace("`r`n","`n").Replace("`r","`n"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
+"%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge/profile3/history" >nul 2>&1
+"%ADB%" push "%HIST_TMP3%\." /data/local/tmp/sts_bridge/profile3/history/ >nul 2>&1
+for /f %%h in ('dir /b "%HIST_TMP3%\*.run" 2^>nul') do (
+    echo  history [p3] %%h...
+    "%ADB%" shell "run-as %PKG% sh -c 'cat /data/local/tmp/sts_bridge/profile3/history/%%h > files/default/1/profile3/saves/history/%%h && echo OK || echo FAIL'" 2>&1 | findstr /v "^$"
+)
+rmdir /s /q "%HIST_TMP3%" 2>nul
 rmdir /s /q "%HIST_TMP%" 2>nul
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge" >nul 2>&1
 echo [4/4] 正在清理旧备份...
-"%ADB%" shell "run-as %PKG% sh -c 'find files/default/1 -name '*.corrupt' -delete; find files/default/1 -name '*.run' -size 0 -delete; find files/default/1 -name '*.save' -size 0 -delete'" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'find files/default/1 -name "*.corrupt" -delete; find files/default/1 -name "*.run" -size 0 -delete; find files/default/1 -name "*.save" -size 0 -delete'" >nul 2>&1
 call :CLEANUP "%MB_ROOT%"
 echo [OK] 同步完成。
 pause & goto MENU
 
 :: ------------------ [2. 同步到电脑] ------------------
 :TO_PC
+call :LOG "TO_PC 开始"
 if "!PC_SAVE!"=="" (echo [错误] 未找到PC存档目录 & pause & goto MENU)
 call :CHECK_ADB
 if not defined ADB_OK (pause & goto MENU)
@@ -221,9 +289,12 @@ for %%p in (1 2 3) do mkdir "%TEMP_P%\profile%%p\history" 2>nul
 
 echo [2/5] 正在从手机抓取存档...
 "%ADB%" shell "run-as %PKG% cat files/default/1/profile.save" > "%TEMP_P%\profile.save" 2>nul
-for %%z in ("%TEMP_P%\profile.save") do if %%~zz==0 (
+for %%z in ("%TEMP_P%\profile.save") do if %%~zz==0 set "_PULL_FAIL=1"
+if defined _PULL_FAIL (
     echo [错误] 读取手机存档失败
+    echo [错误] 读取手机存档失败 >> "!LOGFILE!"
     echo [提示] 游戏未安装或未启动过，小米用户需开启「禁用权限监控」
+    set "_PULL_FAIL="
     pause & goto MENU
 )
 for %%p in (1 2 3) do (
@@ -246,36 +317,34 @@ for %%p in (1 2 3) do (
 )
 
 echo [4/5] 正在执行无损适配并写入存档...
-powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%TEMP_P%' -Recurse -Include *.save | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '\"platform_type\":\s*\"none\"','\"platform_type\": \"steam\"'; $c=$c -replace '\"build_id\":\s*\"v0.98.0\"','\"build_id\": \"v0.98.1\"'; [System.IO.File]::WriteAllText($_.FullName,$c,$utf8); (Get-Item $_.FullName).LastWriteTime=Get-Date }" >nul 2>&1
+powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%TEMP_P%' -Recurse -Include *.run,*.save | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '\"platform_type\":\s*\"none\"','\"platform_type\": \"steam\"'; $c=$c -replace '\"build_id\":\s*\"v0.98.0\"','\"build_id\": \"v0.98.1\"'; [System.IO.File]::WriteAllText($_.FullName,$c,$utf8); (Get-Item $_.FullName).LastWriteTime=Get-Date }" >nul 2>&1
 attrib -r "!PC_SAVE!\*.*" /s >nul 2>&1
 if not "!REMOTE_SAVE!"=="" attrib -r "!REMOTE_SAVE!\*.*" /s >nul 2>&1
 copy /y "%TEMP_P%\profile.save" "!PC_SAVE!\profile.save" >nul
 for %%p in (1 2 3) do (
-    if exist "!PC_SAVE!\profile%%p\saves\" (
-        if exist "%TEMP_P%\profile%%p\progress.save"    copy /y "%TEMP_P%\profile%%p\progress.save"    "!PC_SAVE!\profile%%p\saves\progress.save" >nul
-        if exist "%TEMP_P%\profile%%p\prefs.save"       copy /y "%TEMP_P%\profile%%p\prefs.save"       "!PC_SAVE!\profile%%p\saves\prefs.save" >nul
-        for %%z in ("%TEMP_P%\profile%%p\current_run.save") do if %%~zz gtr 0 (
-            copy /y "%TEMP_P%\profile%%p\current_run.save" "!PC_SAVE!\profile%%p\saves\current_run.save" >nul
-        ) else (
-            if exist "!PC_SAVE!\profile%%p\saves\current_run.save" del "!PC_SAVE!\profile%%p\saves\current_run.save"
-        )
-        if exist "!PC_SAVE!\profile%%p\saves\history" del /q "!PC_SAVE!\profile%%p\saves\history\*.run" >nul 2>&1
-        robocopy "%TEMP_P%\profile%%p\history" "!PC_SAVE!\profile%%p\saves\history" /E /R:0 /W:0 /XF *.backup >nul
+    if not exist "!PC_SAVE!\profile%%p\saves\history" mkdir "!PC_SAVE!\profile%%p\saves\history" 2>nul
+    if exist "%TEMP_P%\profile%%p\progress.save"    copy /y "%TEMP_P%\profile%%p\progress.save"    "!PC_SAVE!\profile%%p\saves\progress.save" >nul
+    if exist "%TEMP_P%\profile%%p\prefs.save"       copy /y "%TEMP_P%\profile%%p\prefs.save"       "!PC_SAVE!\profile%%p\saves\prefs.save" >nul
+    for %%z in ("%TEMP_P%\profile%%p\current_run.save") do if %%~zz gtr 0 (
+        copy /y "%TEMP_P%\profile%%p\current_run.save" "!PC_SAVE!\profile%%p\saves\current_run.save" >nul
+    ) else (
+        if exist "!PC_SAVE!\profile%%p\saves\current_run.save" del "!PC_SAVE!\profile%%p\saves\current_run.save"
     )
+    del /q "!PC_SAVE!\profile%%p\saves\history\*.run" >nul 2>&1
+    robocopy "%TEMP_P%\profile%%p\history" "!PC_SAVE!\profile%%p\saves\history" /E /R:0 /W:0 /XF *.backup >nul
 )
 if not "!REMOTE_SAVE!"=="" (
     for %%p in (1 2 3) do (
-        if exist "!REMOTE_SAVE!\profile%%p\saves\" (
-            if exist "%TEMP_P%\profile%%p\progress.save"    copy /y "%TEMP_P%\profile%%p\progress.save"    "!REMOTE_SAVE!\profile%%p\saves\progress.save" >nul
-            if exist "%TEMP_P%\profile%%p\prefs.save"       copy /y "%TEMP_P%\profile%%p\prefs.save"       "!REMOTE_SAVE!\profile%%p\saves\prefs.save" >nul
-            for %%z in ("%TEMP_P%\profile%%p\current_run.save") do if %%~zz gtr 0 (
-                copy /y "%TEMP_P%\profile%%p\current_run.save" "!REMOTE_SAVE!\profile%%p\saves\current_run.save" >nul
-            ) else (
-                if exist "!REMOTE_SAVE!\profile%%p\saves\current_run.save" del "!REMOTE_SAVE!\profile%%p\saves\current_run.save"
-            )
-            if exist "!REMOTE_SAVE!\profile%%p\saves\history" del /q "!REMOTE_SAVE!\profile%%p\saves\history\*.run" >nul 2>&1
-            robocopy "%TEMP_P%\profile%%p\history" "!REMOTE_SAVE!\profile%%p\saves\history" /E /R:0 /W:0 /XF *.backup >nul
+        if not exist "!REMOTE_SAVE!\profile%%p\saves\history" mkdir "!REMOTE_SAVE!\profile%%p\saves\history" 2>nul
+        if exist "%TEMP_P%\profile%%p\progress.save"    copy /y "%TEMP_P%\profile%%p\progress.save"    "!REMOTE_SAVE!\profile%%p\saves\progress.save" >nul
+        if exist "%TEMP_P%\profile%%p\prefs.save"       copy /y "%TEMP_P%\profile%%p\prefs.save"       "!REMOTE_SAVE!\profile%%p\saves\prefs.save" >nul
+        for %%z in ("%TEMP_P%\profile%%p\current_run.save") do if %%~zz gtr 0 (
+            copy /y "%TEMP_P%\profile%%p\current_run.save" "!REMOTE_SAVE!\profile%%p\saves\current_run.save" >nul
+        ) else (
+            if exist "!REMOTE_SAVE!\profile%%p\saves\current_run.save" del "!REMOTE_SAVE!\profile%%p\saves\current_run.save"
         )
+        del /q "!REMOTE_SAVE!\profile%%p\saves\history\*.run" >nul 2>&1
+        robocopy "%TEMP_P%\profile%%p\history" "!REMOTE_SAVE!\profile%%p\saves\history" /E /R:0 /W:0 /XF *.backup >nul
     )
     if exist "!REMOTE_SAVE!\..\remotecache.vdf" del /f /q "!REMOTE_SAVE!\..\remotecache.vdf"
 )
@@ -291,6 +360,7 @@ echo [OK] 同步完成。共 !_total! 条历史记录。
 pause & goto MENU
 
 :RESTORE_PC
+call :LOG "RESTORE_PC 开始"
 cls
 echo ======= 恢复 PC 备份 =======
 set /a cnt=0
@@ -306,8 +376,9 @@ robocopy "%PC_ROOT%\!S_BK!" "!PC_SAVE!" /E /R:0 /W:0 >nul
 if not "!REMOTE_SAVE!"=="" (
     attrib -r "!REMOTE_SAVE!\*.*" /s >nul 2>&1
     for %%p in (1 2 3) do (
+        if not exist "!REMOTE_SAVE!\profile%%p\saves\history" mkdir "!REMOTE_SAVE!\profile%%p\saves\history" 2>nul
         if exist "!PC_SAVE!\profile%%p\saves\" (
-            robocopy "!PC_SAVE!\profile%%p\saves" "!REMOTE_SAVE!\profile%%p\saves" /E /R:0 /W:0 >nul
+            robocopy "!PC_SAVE!\profile%%p\saves" "!REMOTE_SAVE!\profile%%p\saves" /E /R:0 /W:0 /XF *.backup >nul
         )
     )
     if exist "!REMOTE_SAVE!\..\remotecache.vdf" del /f /q "!REMOTE_SAVE!\..\remotecache.vdf"
@@ -320,6 +391,7 @@ echo [OK] 已恢复: !S_BK!
 pause & goto MENU
 
 :RESTORE_MB
+call :LOG "RESTORE_MB 开始"
 cls
 echo ======= 恢复 Mobile 备份 =======
 set /a cnt=0
@@ -347,17 +419,17 @@ if exist "%MB_ROOT%\!S_BK!\profile.save" "%ADB%" push "%MB_ROOT%\!S_BK!\profile.
 echo [2/3] 正在写入手机存档...
 "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile.save ]; then cat /data/local/tmp/sts_bridge/profile.save > files/default/1/profile.save; fi'" >nul 2>&1
 for %%p in (1 2 3) do (
-    "%ADB%" shell "run-as %PKG% sh -c 'rm -rf files/default/1/profile%%p/saves/history && mkdir -p files/default/1/profile%%p/saves/history'" >nul 2>&1
+    "%ADB%" shell "run-as %PKG% sh -c 'mkdir -p files/default/1/profile%%p/saves && rm -rf files/default/1/profile%%p/saves/history && mkdir -p files/default/1/profile%%p/saves/history'" >nul 2>&1
     "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/progress.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/progress.save > files/default/1/profile%%p/saves/progress.save; fi'" >nul 2>&1
     "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/prefs.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/prefs.save > files/default/1/profile%%p/saves/prefs.save; fi'" >nul 2>&1
-    "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/current_run.save ] && [ -s /data/local/tmp/sts_bridge/profile%%p/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/current_run.save > files/default/1/profile%%p/saves/current_run.save; fi'" >nul 2>&1
+    "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/current_run.save ] && [ -s /data/local/tmp/sts_bridge/profile%%p/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/current_run.save > files/default/1/profile%%p/saves/current_run.save; else rm -f files/default/1/profile%%p/saves/current_run.save; fi'" >nul 2>&1
 )
 "%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile1/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile1/saves/history/$(basename $f)"; done'" >nul 2>&1
 "%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile2/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile2/saves/history/$(basename $f)"; done'" >nul 2>&1
 "%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile3/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile3/saves/history/$(basename $f)"; done'" >nul 2>&1
 echo [3/3] 正在清理中转站...
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge" >nul 2>&1
-"%ADB%" shell "run-as %PKG% sh -c 'find files/default/1 -name '*.corrupt' -delete; find files/default/1 -name '*.run' -size 0 -delete; find files/default/1 -name '*.save' -size 0 -delete'" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'find files/default/1 -name "*.corrupt" -delete; find files/default/1 -name "*.run" -size 0 -delete; find files/default/1 -name "*.save" -size 0 -delete'" >nul 2>&1
 echo [OK] 已恢复: !S_BK!
 pause & goto MENU
 
@@ -433,6 +505,12 @@ echo                  或将本工具目录加入白名单
 echo.
 echo ==========================================
 pause & goto MENU
+
+
+:: ------------------ [LOG 写入日志] ------------------
+:LOG
+echo %~1 >> "!LOGFILE!"
+exit /b
 
 :: ------------------ [CLEANUP 保留最新N个备份] ------------------
 :CLEANUP

@@ -1,1 +1,174 @@
-[周三 2026/03/11 20:41:43.83] 程序启动 
+[周五 2026/03/13 14:24:12.05] 程序启动 
+ 
+===== 周五 2026/03/13 14:31:44.35 ===== 
+TO_MOBILE 开始 
+------------------------------------------ 
+ [诊断] Android版本: 12 
+ [诊断] 设备品牌: HUAWEI 
+ [诊断] SELinux: Enforcing 
+------------------------------------------ 
+ [诊断] 测试 run-as 权限... 
+ 结果: operable program or batch file. 
+ [警告] run-as 失败 
+ [诊断] 检查 bridge 目录内容... 
+total 19
+drwxrwxrwx 5 shell shell 3452 2026-03-13 14:31 .
+drwxrwx--x 6 shell shell 3452 2026-03-13 14:31 ..
+-rwxrwxrwx 1 shell shell   52 2026-03-13 14:23 profile.save
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:31 profile1
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:31 profile2
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:31 profile3
+ [诊断] 测试 run-as 读取 bridge 文件... 
+ 
+===== 周五 2026/03/13 14:37:38.34 ===== 
+TO_MOBILE 开始 
+------------------------------------------ 
+ [诊断] Android版本: 12 
+ [诊断] 设备品牌: HUAWEI 
+ [诊断] SELinux: Enforcing 
+------------------------------------------ 
+ [诊断] 测试 run-as 权限... 
+ 结果: operable program or batch file. 
+ [警告] run-as 诊断异常 
+ [诊断] 检查 bridge 目录内容... 
+total 19
+drwxrwxrwx 5 shell shell 3452 2026-03-13 14:37 .
+drwxrwx--x 6 shell shell 3452 2026-03-13 14:37 ..
+-rwxrwxrwx 1 shell shell   52 2026-03-13 14:23 profile.save
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:37 profile1
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:37 profile2
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:37 profile3
+ [诊断] 测试 run-as 读取 bridge 文件... 
+ 
+===== 周五 2026/03/13 14:38:54.17 ===== 
+TO_MOBILE 开始 
+------------------------------------------ 
+ [诊断] Android版本: 12 
+ [诊断] 设备品牌: HUAWEI 
+ [诊断] SELinux: Enforcing 
+------------------------------------------ 
+ [诊断] 测试 run-as 权限... 
+ 结果: operable program or batch file. 
+ [警告] run-as 诊断异常 
+ [诊断] 检查 bridge 目录内容... 
+total 19
+drwxrwxrwx 5 shell shell 3452 2026-03-13 14:39 .
+drwxrwx--x 6 shell shell 3452 2026-03-13 14:39 ..
+-rwxrwxrwx 1 shell shell   52 2026-03-13 14:23 profile.save
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:39 profile1
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:39 profile2
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:39 profile3
+ [诊断] 测试 run-as 读取 bridge 文件... 
+ bridge可读性: operable program or batch file. 
+------------------------------------------ 
+ 写入 profile.save... 
+ 验证 profile.save: 'E:\my-code\STS2_Sync\adb\adb.exe" shell "run-as' is not recognized as an internal or external command, bytes 
+ 验证 profile.save: operable program or batch file. bytes 
+ 
+===== 周五 2026/03/13 14:48:17.11 ===== 
+TO_MOBILE 开始 
+------------------------------------------ 
+[诊断] Android: 12 
+[诊断] 品牌: HUAWEI 
+[诊断] SELinux: Enforcing 
+[诊断] run-as: operable program or batch file. 
+total 19
+drwxrwxrwx 5 shell shell 3452 2026-03-13 14:48 .
+drwxrwx--x 6 shell shell 3452 2026-03-13 14:48 ..
+-rwxrwxrwx 1 shell shell   52 2026-03-13 14:23 profile.save
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:48 profile1
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:48 profile2
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:48 profile3
+------------------------------------------ 
+  写入 profile.save ... operable program or batch file. 
+ 
+===== 周五 2026/03/13 14:49:13.33 ===== 
+TO_MOBILE 开始 
+------------------------------------------ 
+ [诊断] Android版本: 12 
+ [诊断] 设备品牌: HUAWEI 
+ [诊断] SELinux: Enforcing 
+------------------------------------------ 
+ [诊断] 测试 run-as 权限... 
+ 结果: operable program or batch file. 
+ [警告] run-as 诊断异常 
+ [诊断] 检查 bridge 目录内容... 
+total 19
+drwxrwxrwx 5 shell shell 3452 2026-03-13 14:49 .
+drwxrwx--x 6 shell shell 3452 2026-03-13 14:49 ..
+-rwxrwxrwx 1 shell shell   52 2026-03-13 14:23 profile.save
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:49 profile1
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:49 profile2
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:49 profile3
+ [诊断] 测试 run-as 读取 bridge 文件... 
+ bridge可读性: operable program or batch file. 
+------------------------------------------ 
+ 写入 profile.save... 
+ 验证 profile.save: 'E:\my-code\STS2_Sync\adb\adb.exe" shell "run-as' is not recognized as an internal or external command, bytes 
+ 验证 profile.save: operable program or batch file. bytes 
+ 
+===== 周五 2026/03/13 14:50:22.07 ===== 
+TO_MOBILE 开始 
+------------------------------------------ 
+ [诊断] Android版本: 12 
+ [诊断] 设备品牌: HUAWEI 
+ [诊断] SELinux: Enforcing 
+------------------------------------------ 
+ [诊断] 测试 run-as 权限... 
+ 结果: OK 
+ [诊断] 检查 bridge 目录内容... 
+total 19
+drwxrwxrwx 5 shell shell 3452 2026-03-13 14:50 .
+drwxrwx--x 6 shell shell 3452 2026-03-13 14:50 ..
+-rwxrwxrwx 1 shell shell   52 2026-03-13 14:23 profile.save
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:50 profile1
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:50 profile2
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:50 profile3
+ [诊断] 测试 run-as 读取 bridge 文件... 
+ bridge可读性: /data/local/tmp/sts_bridge/profile.save 
+------------------------------------------ 
+ 写入 profile.save... 
+ 
+===== 周五 2026/03/13 14:53:13.20 ===== 
+TO_MOBILE 开始 
+------------------------------------------ 
+ [诊断] Android版本: 12 
+ [诊断] 设备品牌: HUAWEI 
+ [诊断] SELinux: Enforcing 
+------------------------------------------ 
+ [诊断] 测试 run-as 权限... 
+ 结果: OK 
+ [诊断] 检查 bridge 目录内容... 
+total 19
+drwxrwxrwx 5 shell shell 3452 2026-03-13 14:53 .
+drwxrwx--x 6 shell shell 3452 2026-03-13 14:53 ..
+-rwxrwxrwx 1 shell shell   52 2026-03-13 14:53 profile.save
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:53 profile1
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:53 profile2
+drwxrwxrwx 3 shell shell 3452 2026-03-13 14:53 profile3
+ [诊断] 测试 run-as 读取 bridge 文件... 
+ bridge可读性: /data/local/tmp/sts_bridge/profile.save 
+------------------------------------------ 
+ 写入 profile.save... 
+ 
+===== 周五 2026/03/13 14:56:40.20 ===== 
+TO_MOBILE 开始 
+------------------------------------------ 
+ [诊断] Android版本: 16 
+ [诊断] 设备品牌: OnePlus 
+ [诊断] SELinux: Enforcing 
+------------------------------------------ 
+ [诊断] 测试 run-as 权限... 
+ 结果: OK 
+ [诊断] 检查 bridge 目录内容... 
+total 19
+drwxrwxrwx 5 shell shell 3440 2026-03-13 14:56 .
+drwxrwx--x 7 shell shell 3440 2026-03-13 14:56 ..
+-rwxrwxrwx 1 shell shell   52 2026-03-13 14:53 profile.save
+drwxrwxrwx 3 shell shell 3440 2026-03-13 14:56 profile1
+drwxrwxrwx 3 shell shell 3440 2026-03-13 14:56 profile2
+drwxrwxrwx 3 shell shell 3440 2026-03-13 14:56 profile3
+ [诊断] 测试 run-as 读取 bridge 文件... 
+ bridge可读性: /data/local/tmp/sts_bridge/profile.save 
+------------------------------------------ 
+ 写入 profile.save... 
