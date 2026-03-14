@@ -166,7 +166,7 @@ for %%p in (1 2 3) do (
     if exist "!PC_SAVE!\profile%%p\saves\history" robocopy "!PC_SAVE!\profile%%p\saves\history" "%PUSH_TMP%\profile%%p\history" /E /R:0 /W:0 >nul
 )
 if exist "!PC_SAVE!\profile.save" copy /y "!PC_SAVE!\profile.save" "%PUSH_TMP%\profile.save" >nul
-powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%PUSH_TMP%' -Recurse | Where-Object { -not $_.PSIsContainer } | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c.Replace("`r`n","`n").Replace("`r","`n"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
+powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%PUSH_TMP%' -Recurse -Include *.run,*.save | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c.Replace(\"`r`n\",\"`n\").Replace(\"`r\",\"`n\"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge && mkdir -p /data/local/tmp/sts_bridge" >nul 2>&1
 for %%p in (1 2 3) do (
     "%ADB%" shell "mkdir -p /data/local/tmp/sts_bridge/profile%%p/history" >nul 2>&1
@@ -232,7 +232,7 @@ set /a _hcnt=0
 for %%x in ("%HIST_TMP%\*.run") do set /a _hcnt+=1
 if !_hcnt! gtr 0 (
     echo  正在转换历史记录 (!_hcnt! 条^)...
-    powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%HIST_TMP%' -Filter *.run | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '\"platform_type\":\s*\"steam\"','\"platform_type\": \"none\"'; $c=$c -replace '\"build_id\":\s*\"v0.98.1\"','\"build_id\": \"v0.98.0\"'; $c=$c.Replace("`r`n","`n").Replace("`r","`n"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
+    powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%HIST_TMP%' -Filter *.run | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '\"platform_type\":\s*\"steam\"','\"platform_type\": \"none\"'; $c=$c -replace '\"build_id\":\s*\"v0.98.1\"','\"build_id\": \"v0.98.0\"'; $c=$c.Replace(\"`r`n\",\"`n\").Replace(\"`r\",\"`n\"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
     "%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge/profile1/history" >nul 2>&1
     "%ADB%" push "%HIST_TMP%\." /data/local/tmp/sts_bridge/profile1/history/ >nul 2>&1
     for /f %%h in ('dir /b "%HIST_TMP%\*.run" 2^>nul') do (
@@ -244,7 +244,7 @@ set "HIST_TMP2=%~dp0hist_tmp2"
 rmdir /s /q "%HIST_TMP2%" 2>nul
 mkdir "%HIST_TMP2%" 2>nul
 "%ADB%" pull /data/local/tmp/sts_bridge/profile2/history/. "%HIST_TMP2%" >nul 2>&1
-powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%HIST_TMP2%' -Filter *.run | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '"platform_type":\s*"steam"','"platform_type": "none"'; $c=$c -replace '"build_id":\s*"v0.98.1"','"build_id": "v0.98.0"'; $c=$c.Replace("`r`n","`n").Replace("`r","`n"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
+powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%HIST_TMP2%' -Filter *.run | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '\"platform_type\":\s*\"steam\"','\"platform_type\": \"none\"'; $c=$c -replace '\"build_id\":\s*\"v0.98.1\"','\"build_id\": \"v0.98.0\"'; $c=$c.Replace(\"`r`n\",\"`n\").Replace(\"`r\",\"`n\"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
 "%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge/profile2/history" >nul 2>&1
 "%ADB%" push "%HIST_TMP2%\." /data/local/tmp/sts_bridge/profile2/history/ >nul 2>&1
 for /f %%h in ('dir /b "%HIST_TMP2%\*.run" 2^>nul') do (
@@ -256,7 +256,7 @@ set "HIST_TMP3=%~dp0hist_tmp3"
 rmdir /s /q "%HIST_TMP3%" 2>nul
 mkdir "%HIST_TMP3%" 2>nul
 "%ADB%" pull /data/local/tmp/sts_bridge/profile3/history/. "%HIST_TMP3%" >nul 2>&1
-powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%HIST_TMP3%' -Filter *.run | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '"platform_type":\s*"steam"','"platform_type": "none"'; $c=$c -replace '"build_id":\s*"v0.98.1"','"build_id": "v0.98.0"'; $c=$c.Replace("`r`n","`n").Replace("`r","`n"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
+powershell -Command "$utf8=New-Object System.Text.UTF8Encoding $False; Get-ChildItem '%HIST_TMP3%' -Filter *.run | ForEach-Object { $c=[System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8); $c=$c -replace '\"platform_type\":\s*\"steam\"','\"platform_type\": \"none\"'; $c=$c -replace '\"build_id\":\s*\"v0.98.1\"','\"build_id\": \"v0.98.0\"'; $c=$c.Replace(\"`r`n\",\"`n\").Replace(\"`r\",\"`n\"); [System.IO.File]::WriteAllText($_.FullName,$c,$utf8) }" >nul 2>&1
 "%ADB%" shell "chmod -R 777 /data/local/tmp/sts_bridge/profile3/history" >nul 2>&1
 "%ADB%" push "%HIST_TMP3%\." /data/local/tmp/sts_bridge/profile3/history/ >nul 2>&1
 for /f %%h in ('dir /b "%HIST_TMP3%\*.run" 2^>nul') do (
@@ -267,7 +267,7 @@ rmdir /s /q "%HIST_TMP3%" 2>nul
 rmdir /s /q "%HIST_TMP%" 2>nul
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge" >nul 2>&1
 echo [4/4] 正在清理旧备份...
-"%ADB%" shell "run-as %PKG% sh -c 'find files/default/1 -name "*.corrupt" -delete; find files/default/1 -name "*.run" -size 0 -delete; find files/default/1 -name "*.save" -size 0 -delete'" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'find files/default/1 -name \"*.corrupt\" -delete; find files/default/1 -name \"*.run\" -size 0 -delete; find files/default/1 -name \"*.save\" -size 0 -delete'" >nul 2>&1
 call :CLEANUP "%MB_ROOT%"
 echo [OK] 同步完成。
 pause & goto MENU
@@ -289,12 +289,14 @@ for %%p in (1 2 3) do mkdir "%TEMP_P%\profile%%p\history" 2>nul
 
 echo [2/5] 正在从手机抓取存档...
 "%ADB%" shell "run-as %PKG% cat files/default/1/profile.save" > "%TEMP_P%\profile.save" 2>nul
-for %%z in ("%TEMP_P%\profile.save") do if %%~zz==0 set "_PULL_FAIL=1"
+"%ADB%" shell "run-as %PKG% cat files/default/1/profile1/saves/progress.save" > "%TEMP_P%\profile1\progress.save" 2>nul
+for %%z in ("%TEMP_P%\profile1\progress.save") do if %%~zz==0 set "_PULL_FAIL=1"
 if defined _PULL_FAIL (
     echo [错误] 读取手机存档失败
     echo [错误] 读取手机存档失败 >> "!LOGFILE!"
     echo [提示] 游戏未安装或未启动过，小米用户需开启「禁用权限监控」
     set "_PULL_FAIL="
+    rmdir /s /q "%TEMP_P%" 2>nul
     pause & goto MENU
 )
 for %%p in (1 2 3) do (
@@ -305,7 +307,6 @@ for %%p in (1 2 3) do (
         "%ADB%" shell "run-as %PKG% cat files/default/1/profile%%p/saves/history/%%f" > "%TEMP_P%\profile%%p\history\%%f" 2>nul
     )
 )
-"%ADB%" shell "run-as %PKG% cat files/default/1/profile.save" > "%TEMP_P%\profile.save" 2>nul
 
 echo [3/5] 正在统计历史记录...
 set /a _total=0
@@ -424,12 +425,12 @@ for %%p in (1 2 3) do (
     "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/prefs.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/prefs.save > files/default/1/profile%%p/saves/prefs.save; fi'" >nul 2>&1
     "%ADB%" shell "run-as %PKG% sh -c 'if [ -f /data/local/tmp/sts_bridge/profile%%p/current_run.save ] && [ -s /data/local/tmp/sts_bridge/profile%%p/current_run.save ]; then cat /data/local/tmp/sts_bridge/profile%%p/current_run.save > files/default/1/profile%%p/saves/current_run.save; else rm -f files/default/1/profile%%p/saves/current_run.save; fi'" >nul 2>&1
 )
-"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile1/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile1/saves/history/$(basename $f)"; done'" >nul 2>&1
-"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile2/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile2/saves/history/$(basename $f)"; done'" >nul 2>&1
-"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile3/history/*.run; do [ -f "$f" ] || continue; cat "$f" > "files/default/1/profile3/saves/history/$(basename $f)"; done'" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile1/history/*.run; do [ -f \"\$f\" ] || continue; cat \"\$f\" > \"files/default/1/profile1/saves/history/\$(basename \$f)\"; done'" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile2/history/*.run; do [ -f \"\$f\" ] || continue; cat \"\$f\" > \"files/default/1/profile2/saves/history/\$(basename \$f)\"; done'" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'for f in /data/local/tmp/sts_bridge/profile3/history/*.run; do [ -f \"\$f\" ] || continue; cat \"\$f\" > \"files/default/1/profile3/saves/history/\$(basename \$f)\"; done'" >nul 2>&1
 echo [3/3] 正在清理中转站...
 "%ADB%" shell "rm -rf /data/local/tmp/sts_bridge" >nul 2>&1
-"%ADB%" shell "run-as %PKG% sh -c 'find files/default/1 -name "*.corrupt" -delete; find files/default/1 -name "*.run" -size 0 -delete; find files/default/1 -name "*.save" -size 0 -delete'" >nul 2>&1
+"%ADB%" shell "run-as %PKG% sh -c 'find files/default/1 -name \"*.corrupt\" -delete; find files/default/1 -name \"*.run\" -size 0 -delete; find files/default/1 -name \"*.save\" -size 0 -delete'" >nul 2>&1
 echo [OK] 已恢复: !S_BK!
 pause & goto MENU
 
